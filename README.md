@@ -43,6 +43,9 @@ docker compose exec app npm test
 | POST | /api/admin/itens | admin | cadastra item |
 | PATCH | /api/admin/itens/:id | admin | tira ou volta ao cardápio |
 
+##Vídeo:
+
+
 ## Segurança
 - senhas no `.env`, que não vai pro GitHub
 - rotas de admin exigem a senha no cabeçalho `X-Admin-Token`
