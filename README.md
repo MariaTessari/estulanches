@@ -44,6 +44,7 @@ docker compose exec app npm test
 | PATCH | /api/admin/itens/:id | admin | tira ou volta ao cardápio |
 
 ##Vídeo: https://drive.google.com/file/d/174w02TbpqPk3Cos_eRp0lojJ8aSKMVRO/view?usp=drive_link 
+##Ficha RDM: https://drive.google.com/file/d/1YbYqRfk54TTOTy7rrrO3klVKPzYdWD2z/view?usp=sharing
 
 
 ## Segurança
