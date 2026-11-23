@@ -5,8 +5,6 @@ Sistema de cardápio e pedidos da cantina da escola, rodando com Docker.
 - **Cliente** (`/`): vê o cardápio, monta o pedido e acompanha o status.
 - **Cantina/admin** (`/admin.html`): aprova ou recusa pedidos, acompanha o preparo e cuida do cardápio.
 
-**Tecnologias:** Node.js, Express, PostgreSQL, Docker Compose.
-
 ## Como rodar
 ```bash
 cp .env.example .env     # troque as senhas
