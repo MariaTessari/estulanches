@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EstuLanches</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header>
+    <h1>EstuLanches</h1>
+    <p>Cardápio e pedidos da cantina</p>
+  </header>
+
+  <main>
+    <h2>Cardápio</h2>
+    <ul id="cardapio"></ul>
+    <p id="resumo"></p>
+
+    <h2>Fazer pedido</h2>
+    <form id="form-pedido">
+      <label>Seu nome
+        <input type="text" id="cliente" maxlength="60" required>
+      </label>
+      <button type="submit">Enviar pedido</button>
+      <p class="msg" id="mensagem" role="status"></p>
+    </form>
+
+    <h2>Acompanhar pedido</h2>
+    <div id="acompanhamento"></div>
+    <form id="form-busca">
+      <label>Número do pedido
+        <input type="number" id="numero" min="1">
+      </label>
+      <button type="submit" class="claro">Ver status</button>
+    </form>
+
+    <p class="rodape"><a href="admin.html">Área da cantina</a></p>
+  </main>
+
+  <script src="comum.js"></script>
+  <script src="cliente.js"></script>
+</body>
+</html>

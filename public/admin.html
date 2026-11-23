@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EstuLanches - Cantina</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header>
+    <h1>Área da cantina</h1>
+    <p><a href="index.html">Voltar para a página do cliente</a></p>
+  </header>
+
+  <main>
+    <section id="entrada">
+      <h2>Entrar</h2>
+      <form id="form-entrada">
+        <label>Senha da cantina
+          <input type="password" id="senha" required>
+        </label>
+        <button type="submit">Entrar</button>
+        <p class="msg erro" id="erro-entrada" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="painel" hidden>
+      <h2>Pedidos</h2>
+      <div id="pedidos"></div>
+
+      <h2>Cardápio</h2>
+      <ul id="itens"></ul>
+
+      <h2>Novo item</h2>
+      <form id="form-item" class="linha-form">
+        <label>Nome
+          <input type="text" id="nome" maxlength="60" required>
+        </label>
+        <label>Preço (R$)
+          <input type="text" id="preco" inputmode="decimal" placeholder="6,50" required>
+        </label>
+        <button type="submit">Adicionar</button>
+      </form>
+      <p class="msg" id="mensagem" role="status"></p>
+
+      <p class="rodape"><button type="button" class="claro" id="sair">Sair</button></p>
+    </section>
+  </main>
+
+  <script src="comum.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
