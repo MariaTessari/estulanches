@@ -11,6 +11,17 @@ function podeMudarStatus(atual, novo) {
   return (PROXIMOS[atual] || []).includes(novo);
 }
 
+function validarNomeCompleto(texto) {
+  const nome = typeof texto === 'string' ? texto.trim().replace(/\s+/g, ' ') : '';
+  const palavras = nome.split(' ');
+  const formatoDePalavra = /^[\p{L}][\p{L}'.-]*$/u;
+  const valido =
+    nome.length <= 60 &&
+    palavras.length >= 2 &&
+    palavras.every((p) => p.length >= 2 && formatoDePalavra.test(p));
+  return { valido, nome };
+}
+
 function validarItem(dados) {
   const nome = typeof dados.nome === 'string' ? dados.nome.trim() : '';
   const preco = Number(dados.preco_centavos);
@@ -54,4 +65,4 @@ function calcularPedido(linhas, cardapio) {
   return { erros, itens, total };
 }
 
-module.exports = { podeMudarStatus, validarItem, calcularPedido };
+module.exports = { podeMudarStatus, validarNomeCompleto, validarItem, calcularPedido };

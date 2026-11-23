@@ -2,11 +2,13 @@ CREATE TABLE IF NOT EXISTS itens (
   id SERIAL PRIMARY KEY,
   nome VARCHAR(60) NOT NULL,
   preco_centavos INT NOT NULL,
-  disponivel BOOLEAN NOT NULL DEFAULT true
+  disponivel BOOLEAN NOT NULL DEFAULT true,
+  excluido BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS pedidos (
   id SERIAL PRIMARY KEY,
+  codigo VARCHAR(8) NOT NULL UNIQUE,
   cliente VARCHAR(60) NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'aguardando',
   total_centavos INT NOT NULL,

@@ -81,43 +81,44 @@ document.getElementById('form-pedido').addEventListener('submit', async (evento)
     return avisar(dados.erros.join(' '), true);
   }
 
-  avisar('Pedido nº ' + dados.id + ' enviado! Acompanhe abaixo.', false);
+  avisar('Pedido enviado! Guarde o código ' + dados.codigo + '.', false);
   for (const id in quantidades) delete quantidades[id];
   desenharCardapio();
-  localStorage.setItem('pedidoAtual', dados.id);
-  mostrarPedido(dados.id);
+  mostrarPedido(dados.codigo);
 });
 
 document.getElementById('form-busca').addEventListener('submit', (evento) => {
   evento.preventDefault();
-  const numero = Number(document.getElementById('numero').value);
-  if (numero > 0) {
-    localStorage.setItem('pedidoAtual', numero);
-    mostrarPedido(numero);
-  }
+  const codigo = document.getElementById('codigo').value.trim().toUpperCase();
+  if (codigo) mostrarPedido(codigo);
 });
 
-async function mostrarPedido(id) {
+async function mostrarPedido(codigo) {
   clearInterval(timer);
-  const resposta = await fetch('/api/pedidos/' + id);
+  const resposta = await fetch('/api/pedidos/' + encodeURIComponent(codigo));
 
   if (!resposta.ok) {
-    localStorage.removeItem('pedidoAtual');
-    caixa.replaceChildren(criar('p', 'erro', 'Pedido não encontrado.'));
+    if (localStorage.getItem('codigoAtual') === codigo) localStorage.removeItem('codigoAtual');
+    caixa.replaceChildren(criar('p', 'erro', 'Pedido não encontrado. Confira o código.'));
     return;
   }
 
   const pedido = await resposta.json();
+  localStorage.setItem('codigoAtual', codigo);
   desenharPedido(pedido);
 
   if (pedido.status !== 'entregue' && pedido.status !== 'recusado') {
-    timer = setInterval(() => mostrarPedido(id), 5000);
+    timer = setInterval(() => mostrarPedido(codigo), 5000);
   }
 }
 
 function desenharPedido(pedido) {
   const cartao = criar('div', 'cartao');
-  cartao.append(criar('h3', '', 'Pedido nº ' + pedido.id + ' de ' + pedido.cliente));
+  cartao.append(criar('h3', '', 'Pedido de ' + pedido.cliente));
+
+  const codigo = criar('p', 'codigo', 'Código: ');
+  codigo.append(criar('strong', '', pedido.codigo));
+  cartao.append(codigo);
 
   if (pedido.status === 'recusado') {
     cartao.append(criar('p', 'erro', 'Este pedido foi recusado pela cantina.'));
@@ -142,5 +143,5 @@ function desenharPedido(pedido) {
 }
 
 carregarCardapio();
-const guardado = localStorage.getItem('pedidoAtual');
-if (guardado) mostrarPedido(Number(guardado));
+const guardado = localStorage.getItem('codigoAtual');
+if (guardado) mostrarPedido(guardado);

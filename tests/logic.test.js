@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { podeMudarStatus, validarItem, calcularPedido } = require('../src/logic');
+const { podeMudarStatus, validarNomeCompleto, validarItem, calcularPedido } = require('../src/logic');
 
 const cardapio = [
   { id: 1, nome: 'Coxinha', preco_centavos: 600, disponivel: true },
@@ -28,10 +28,26 @@ test('recusa quantidade fora do limite', () => {
   assert.ok(calcularPedido([{ id: 1, quantidade: 11 }], cardapio).erros.length > 0);
 });
 
+test('aceita nome completo e arruma os espaços', () => {
+  const r = validarNomeCompleto('  Maria   da Silva ');
+  assert.equal(r.valido, true);
+  assert.equal(r.nome, 'Maria da Silva');
+  assert.equal(validarNomeCompleto("Ana D'Ávila-Souza").valido, true);
+});
+
+test('recusa nome sem sobrenome, vazio ou com números', () => {
+  assert.equal(validarNomeCompleto('Maria').valido, false);
+  assert.equal(validarNomeCompleto('').valido, false);
+  assert.equal(validarNomeCompleto(undefined).valido, false);
+  assert.equal(validarNomeCompleto('Maria 123').valido, false);
+  assert.equal(validarNomeCompleto('M S').valido, false);
+});
+
 test('valida item novo do cardápio', () => {
   assert.equal(validarItem({ nome: 'Pastel', preco_centavos: 700 }).erros.length, 0);
   assert.ok(validarItem({ nome: 'P', preco_centavos: 700 }).erros.length > 0);
   assert.ok(validarItem({ nome: 'Pastel', preco_centavos: -5 }).erros.length > 0);
+  assert.ok(validarItem({ nome: 'Pastel', preco_centavos: null }).erros.length > 0);
 });
 
 test('o status do pedido só segue a ordem certa', () => {

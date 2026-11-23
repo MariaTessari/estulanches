@@ -6,6 +6,8 @@ process.env.ADMIN_TOKEN = 'senha-de-teste';
 const app = require('../src/app');
 const pool = require('../src/db');
 
+const CLIENTE = 'Cliente de Teste';
+
 let servidor;
 let base;
 
@@ -15,8 +17,8 @@ before(() => {
 });
 
 after(async () => {
-  await pool.query("DELETE FROM pedido_itens WHERE pedido_id IN (SELECT id FROM pedidos WHERE cliente = 'Cliente de Teste')");
-  await pool.query("DELETE FROM pedidos WHERE cliente = 'Cliente de Teste'");
+  await pool.query("DELETE FROM pedido_itens WHERE pedido_id IN (SELECT id FROM pedidos WHERE cliente = $1)", [CLIENTE]);
+  await pool.query('DELETE FROM pedidos WHERE cliente = $1', [CLIENTE]);
   await pool.query("DELETE FROM itens WHERE nome LIKE 'Teste:%'");
   servidor.closeAllConnections();
   servidor.close();
@@ -33,11 +35,25 @@ function enviar(rota, metodo, corpo, comSenha) {
   });
 }
 
+async function criarItem(nome, preco) {
+  const res = await enviar('/api/admin/itens', 'POST', { nome, preco_centavos: preco }, true);
+  assert.equal(res.status, 201);
+  return res.json();
+}
+
 test('/health confirma aplicação e banco', async () => {
   const res = await enviar('/health', 'GET');
   assert.equal(res.status, 200);
   const dados = await res.json();
   assert.equal(dados.banco, 'ok');
+});
+
+test('as respostas trazem cabeçalhos de segurança', async () => {
+  const res = await enviar('/health', 'GET');
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(res.headers.get('x-frame-options'), 'DENY');
+  assert.ok(res.headers.get('content-security-policy'));
+  assert.equal(res.headers.get('x-powered-by'), null);
 });
 
 test('/api/cardapio devolve itens do banco', async () => {
@@ -47,22 +63,21 @@ test('/api/cardapio devolve itens do banco', async () => {
   assert.ok(itens.length > 0);
 });
 
-test('fluxo completo: criar item, fazer pedido e aprovar', async () => {
-  const novo = await enviar('/api/admin/itens', 'POST', { nome: 'Teste: item novo', preco_centavos: 700 }, true);
-  assert.equal(novo.status, 201);
-  const item = await novo.json();
+test('fluxo completo: criar item, fazer pedido, acompanhar e aprovar', async () => {
+  const item = await criarItem('Teste: item novo', 700);
 
   const pedidoRes = await enviar('/api/pedidos', 'POST', {
-    cliente: 'Cliente de Teste',
+    cliente: CLIENTE,
     itens: [{ id: item.id, quantidade: 2 }],
   });
   assert.equal(pedidoRes.status, 201);
   const pedido = await pedidoRes.json();
   assert.equal(pedido.total_centavos, 1400);
   assert.equal(pedido.status, 'aguardando');
+  assert.match(pedido.codigo, /^[A-F0-9]{8}$/);
 
-  const consulta = await (await enviar('/api/pedidos/' + pedido.id, 'GET')).json();
-  assert.equal(consulta.cliente, 'Cliente de Teste');
+  const consulta = await (await enviar('/api/pedidos/' + pedido.codigo, 'GET')).json();
+  assert.equal(consulta.cliente, CLIENTE);
   assert.equal(consulta.itens[0].quantidade, 2);
 
   const aprovado = await enviar('/api/admin/pedidos/' + pedido.id, 'PATCH', { status: 'aprovado' }, true);
@@ -73,20 +88,97 @@ test('fluxo completo: criar item, fazer pedido e aprovar', async () => {
   assert.equal(pulo.status, 400);
 });
 
-test('pedido sem itens é recusado', async () => {
-  const res = await enviar('/api/pedidos', 'POST', { cliente: 'Cliente de Teste', itens: [] });
+test('pedido exige nome completo', async () => {
+  const item = await criarItem('Teste: item nome', 300);
+  const res = await enviar('/api/pedidos', 'POST', {
+    cliente: 'Maria',
+    itens: [{ id: item.id, quantidade: 1 }],
+  });
   assert.equal(res.status, 400);
+});
+
+test('o pedido de outra pessoa não pode ser visto pelo número', async () => {
+  const item = await criarItem('Teste: item privado', 300);
+  const pedido = await (await enviar('/api/pedidos', 'POST', {
+    cliente: CLIENTE,
+    itens: [{ id: item.id, quantidade: 1 }],
+  })).json();
+
+  assert.equal((await enviar('/api/pedidos/' + pedido.id, 'GET')).status, 404);
+  assert.equal((await enviar('/api/pedidos/AAAAAAAA', 'GET')).status, 404);
+});
+
+test('editar item atualiza nome e preço no cardápio', async () => {
+  const item = await criarItem('Teste: item antes', 500);
+
+  const edicao = await enviar('/api/admin/itens/' + item.id, 'PUT', { nome: 'Teste: item depois', preco_centavos: 650 }, true);
+  assert.equal(edicao.status, 200);
+
+  const cardapio = await (await enviar('/api/cardapio', 'GET')).json();
+  const achado = cardapio.find((i) => i.id === item.id);
+  assert.equal(achado.nome, 'Teste: item depois');
+  assert.equal(achado.preco_centavos, 650);
+
+  const invalida = await enviar('/api/admin/itens/' + item.id, 'PUT', { nome: 'X', preco_centavos: 0 }, true);
+  assert.equal(invalida.status, 400);
+});
+
+test('excluir item tira do cardápio mas mantém o pedido antigo', async () => {
+  const item = await criarItem('Teste: item excluído', 400);
+  const pedido = await (await enviar('/api/pedidos', 'POST', {
+    cliente: CLIENTE,
+    itens: [{ id: item.id, quantidade: 1 }],
+  })).json();
+
+  const exclusao = await enviar('/api/admin/itens/' + item.id, 'DELETE', undefined, true);
+  assert.equal(exclusao.status, 200);
+
+  const cardapio = await (await enviar('/api/cardapio', 'GET')).json();
+  assert.equal(cardapio.some((i) => i.id === item.id), false);
+
+  const lista = await (await enviar('/api/admin/itens', 'GET', undefined, true)).json();
+  assert.equal(lista.some((i) => i.id === item.id), false);
+
+  const consulta = await (await enviar('/api/pedidos/' + pedido.codigo, 'GET')).json();
+  assert.equal(consulta.itens[0].nome, 'Teste: item excluído');
+
+  const outra = await enviar('/api/admin/itens/' + item.id, 'DELETE', undefined, true);
+  assert.equal(outra.status, 404);
 });
 
 test('item tirado do cardápio não pode ser pedido', async () => {
-  const novo = await (await enviar('/api/admin/itens', 'POST', { nome: 'Teste: item sumido', preco_centavos: 300 }, true)).json();
-  await enviar('/api/admin/itens/' + novo.id, 'PATCH', { disponivel: false }, true);
+  const item = await criarItem('Teste: item sumido', 300);
+  await enviar('/api/admin/itens/' + item.id, 'PATCH', { disponivel: false }, true);
 
-  const res = await enviar('/api/pedidos', 'POST', { cliente: 'Cliente de Teste', itens: [{ id: novo.id, quantidade: 1 }] });
+  const res = await enviar('/api/pedidos', 'POST', {
+    cliente: CLIENTE,
+    itens: [{ id: item.id, quantidade: 1 }],
+  });
   assert.equal(res.status, 400);
 });
 
-test('rotas do admin exigem a senha', async () => {
-  const res = await enviar('/api/admin/pedidos', 'GET');
-  assert.equal(res.status, 401);
+test('JSON quebrado volta erro 400, não 500', async () => {
+  const res = await fetch(base + '/api/admin/itens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': 'senha-de-teste' },
+    body: '{ quebrado',
+  });
+  assert.equal(res.status, 400);
+});
+
+test('rotas do admin exigem a senha certa', async () => {
+  const semSenha = await enviar('/api/admin/pedidos', 'GET');
+  assert.equal(semSenha.status, 401);
+
+  const errada = await fetch(base + '/api/admin/pedidos', { headers: { 'X-Admin-Token': 'errada' } });
+  assert.equal(errada.status, 401);
+});
+
+test('muitos pedidos seguidos são bloqueados', async () => {
+  let bloqueou = false;
+  for (let i = 0; i < 15; i++) {
+    const res = await enviar('/api/pedidos', 'POST', { cliente: 'x', itens: [] });
+    if (res.status === 429) bloqueou = true;
+  }
+  assert.equal(bloqueou, true);
 });

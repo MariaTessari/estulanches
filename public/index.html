@@ -12,28 +12,34 @@
     <p>Cardápio e pedidos da cantina</p>
   </header>
 
-  <main>
-    <h2>Cardápio</h2>
-    <ul id="cardapio"></ul>
-    <p id="resumo"></p>
+  <main class="largo">
+    <div class="duas-colunas">
+      <section>
+        <h2>Cardápio</h2>
+        <ul id="cardapio"></ul>
+        <p id="resumo"></p>
 
-    <h2>Fazer pedido</h2>
-    <form id="form-pedido">
-      <label>Seu nome
-        <input type="text" id="cliente" maxlength="60" required>
-      </label>
-      <button type="submit">Enviar pedido</button>
-      <p class="msg" id="mensagem" role="status"></p>
-    </form>
+        <h2>Fazer pedido</h2>
+        <form id="form-pedido">
+          <label>Nome completo
+            <input type="text" id="cliente" maxlength="60" autocomplete="name" placeholder="Ex.: Maria da Silva" required>
+          </label>
+          <button type="submit">Enviar pedido</button>
+          <p class="msg" id="mensagem" role="status"></p>
+        </form>
+      </section>
 
-    <h2>Acompanhar pedido</h2>
-    <div id="acompanhamento"></div>
-    <form id="form-busca">
-      <label>Número do pedido
-        <input type="number" id="numero" min="1">
-      </label>
-      <button type="submit" class="claro">Ver status</button>
-    </form>
+      <section>
+        <h2>Status do pedido</h2>
+        <div id="acompanhamento"></div>
+        <form id="form-busca">
+          <label>Código do pedido
+            <input type="text" id="codigo" maxlength="8" autocomplete="off" placeholder="Ex.: A1B2C3D4">
+          </label>
+          <button type="submit" class="claro">Ver status</button>
+        </form>
+      </section>
+    </div>
 
     <p class="rodape"><a href="admin.html">Área da cantina</a></p>
   </main>
